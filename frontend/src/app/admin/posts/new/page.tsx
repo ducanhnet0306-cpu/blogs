@@ -1,0 +1,284 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import Link from 'next/link';
+import { clientFetch } from '@/lib/clientApi';
+import { useToast } from '@/contexts/ToastContext';
+import type { Category, Tag, ApiListResponse } from '@/types';
+import RichTextEditor from '@/components/editor/RichTextEditor';
+
+const schema = z.object({
+  title: z.string().min(3, 'Tiêu đề tối thiểu 3 ký tự'),
+  excerpt: z.string().optional(),
+  content: z.string().min(10, 'Nội dung tối thiểu 10 ký tự'),
+  thumbnail: z.string().url('URL ảnh không hợp lệ').optional().or(z.literal('')),
+  category_id: z.string().optional(),
+  status: z.enum(['draft', 'published', 'archived']),
+  is_featured: z.boolean(),
+  seo_title: z.string().optional(),
+  seo_description: z.string().optional(),
+  seo_keywords: z.string().optional(),
+  tag_ids: z.array(z.string()),
+});
+
+type FormData = z.infer<typeof schema>;
+
+export default function NewPostPage() {
+  const router = useRouter();
+  const { success, error: toastError } = useToast();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: zodResolver(schema),
+    defaultValues: { status: 'draft', is_featured: false, tag_ids: [] },
+  });
+
+  const selectedTagIds = watch('tag_ids');
+
+  useEffect(() => {
+    Promise.all([
+      clientFetch<ApiListResponse<Category>>('/admin/categories'),
+      clientFetch<ApiListResponse<Tag>>('/admin/tags'),
+    ]).then(([cats, tagsRes]) => {
+      setCategories(cats.data ?? []);
+      setTags(tagsRes.data ?? []);
+    }).catch(() => {});
+  }, []);
+
+  const toggleTag = (id: string) => {
+    const current = selectedTagIds ?? [];
+    setValue(
+      'tag_ids',
+      current.includes(id) ? current.filter((t) => t !== id) : [...current, id]
+    );
+  };
+
+  const onSubmit = async (data: FormData) => {
+    setIsSubmitting(true);
+    try {
+      await clientFetch('/admin/posts', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...data,
+          category_id: data.category_id ? Number(data.category_id) : null,
+          tag_ids: data.tag_ids.map(Number),
+          thumbnail: data.thumbnail || null,
+          seo: { title: data.seo_title, description: data.seo_description, keywords: data.seo_keywords },
+        }),
+      });
+      success('Đã tạo bài viết thành công!');
+      router.push('/admin/posts');
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : 'Tạo bài viết thất bại');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-4xl">
+      <div className="mb-6 flex items-center gap-3">
+        <Link
+          href="/admin/posts"
+          className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+        >
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+        </Link>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Bài viết mới</h1>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6 lg:grid-cols-3">
+        {/* Main content — 2/3 */}
+        <div className="space-y-5 lg:col-span-2">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800">
+            <div className="space-y-4">
+              {/* Title */}
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Tiêu đề <span className="text-red-500">*</span>
+                </label>
+                <input
+                  {...register('title')}
+                  placeholder="Nhập tiêu đề bài viết..."
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                {errors.title && <p className="mt-1 text-xs text-red-500">{errors.title.message}</p>}
+              </div>
+
+              {/* Excerpt */}
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Tóm tắt
+                </label>
+                <textarea
+                  {...register('excerpt')}
+                  rows={2}
+                  placeholder="Mô tả ngắn về bài viết..."
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+              </div>
+
+              {/* Content */}
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Nội dung <span className="text-red-500">*</span>
+                </label>
+                <RichTextEditor
+                  value={watch('content') ?? ''}
+                  onChange={(val) => setValue('content', val, { shouldValidate: true })}
+                  placeholder="Bắt đầu nhập nội dung bài viết..."
+                  error={!!errors.content}
+                />
+                {errors.content && <p className="mt-1 text-xs text-red-500">{errors.content.message}</p>}
+              </div>
+
+              {/* Thumbnail */}
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  URL ảnh thumbnail
+                </label>
+                <input
+                  {...register('thumbnail')}
+                  placeholder="https://..."
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                {errors.thumbnail && <p className="mt-1 text-xs text-red-500">{errors.thumbnail.message}</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* SEO */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800">
+            <h3 className="mb-4 font-semibold text-slate-900 dark:text-white">SEO</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">SEO Title</label>
+                <input
+                  {...register('seo_title')}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">SEO Description</label>
+                <textarea
+                  {...register('seo_description')}
+                  rows={2}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Keywords</label>
+                <input
+                  {...register('seo_keywords')}
+                  placeholder="từ khóa, phân cách, bằng dấu phẩy"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar — 1/3 */}
+        <div className="space-y-5">
+          {/* Publish settings */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800">
+            <h3 className="mb-4 font-semibold text-slate-900 dark:text-white">Xuất bản</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Trạng thái</label>
+                <select
+                  {...register('status')}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                >
+                  <option value="draft">Nháp</option>
+                  <option value="published">Xuất bản</option>
+                  <option value="archived">Lưu trữ</option>
+                </select>
+              </div>
+
+              <label className="flex cursor-pointer items-center gap-3">
+                <input
+                  {...register('is_featured')}
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-slate-700 dark:text-slate-300">Bài viết nổi bật</span>
+              </label>
+            </div>
+
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700"
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 rounded-xl bg-blue-600 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 active:scale-95 disabled:opacity-60"
+              >
+                {isSubmitting ? 'Đang lưu...' : 'Lưu bài'}
+              </button>
+            </div>
+          </div>
+
+          {/* Category */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800">
+            <h3 className="mb-3 font-semibold text-slate-900 dark:text-white">Danh mục</h3>
+            <select
+              {...register('category_id')}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+            >
+              <option value="">— Không chọn —</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={String(cat.id)}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Tags */}
+          {tags.length > 0 && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800">
+              <h3 className="mb-3 font-semibold text-slate-900 dark:text-white">Tags</h3>
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag) => {
+                  const selected = selectedTagIds?.includes(String(tag.id));
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => toggleTag(String(tag.id))}
+                      className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                        selected
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                      }`}
+                    >
+                      #{tag.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </form>
+    </div>
+  );
+}
