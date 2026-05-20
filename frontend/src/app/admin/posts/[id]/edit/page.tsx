@@ -10,12 +10,14 @@ import { clientFetch } from '@/lib/clientApi';
 import { useToast } from '@/contexts/ToastContext';
 import type { Post, Category, Tag, ApiResponse, ApiListResponse } from '@/types';
 import RichTextEditor from '@/components/editor/RichTextEditor';
+import ThumbnailUploader from '@/components/editor/ThumbnailUploader';
+import CrawlModal, { type CrawlResult } from '@/components/editor/CrawlModal';
 
 const schema = z.object({
   title: z.string().min(3, 'Tiêu đề tối thiểu 3 ký tự'),
   excerpt: z.string().optional(),
   content: z.string().min(10, 'Nội dung tối thiểu 10 ký tự'),
-  thumbnail: z.string().url('URL ảnh không hợp lệ').optional().or(z.literal('')),
+  thumbnail: z.string().optional(),
   category_id: z.string().optional(),
   status: z.enum(['draft', 'published', 'archived']),
   is_featured: z.boolean(),
@@ -35,6 +37,7 @@ export default function EditPostPage() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCrawlModal, setShowCrawlModal] = useState(false);
 
   const {
     register,
@@ -49,6 +52,7 @@ export default function EditPostPage() {
   });
 
   const selectedTagIds = watch('tag_ids');
+  const thumbnail = watch('thumbnail') ?? '';
 
   useEffect(() => {
     const load = async () => {
@@ -84,6 +88,16 @@ export default function EditPostPage() {
     };
     load();
   }, [params.id]);
+
+  const handleCrawlImport = (data: CrawlResult) => {
+    if (data.title) setValue('title', data.title, { shouldValidate: true });
+    if (data.excerpt) setValue('excerpt', data.excerpt);
+    if (data.thumbnail) setValue('thumbnail', data.thumbnail);
+    if (data.content) setValue('content', data.content, { shouldValidate: true });
+    if (data.seo_title) setValue('seo_title', data.seo_title);
+    if (data.seo_description) setValue('seo_description', data.seo_description);
+    success('Đã import nội dung từ URL');
+  };
 
   const toggleTag = (id: string) => {
     const current = selectedTagIds ?? [];
@@ -126,6 +140,10 @@ export default function EditPostPage() {
 
   return (
     <div className="mx-auto max-w-4xl">
+      {showCrawlModal && (
+        <CrawlModal onClose={() => setShowCrawlModal(false)} onImport={handleCrawlImport} />
+      )}
+
       <div className="mb-6 flex items-center gap-3">
         <Link
           href="/admin/posts"
@@ -135,7 +153,18 @@ export default function EditPostPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </Link>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Sửa bài viết</h1>
+        <h1 className="flex-1 text-2xl font-bold text-slate-900 dark:text-white">Sửa bài viết</h1>
+        <button
+          type="button"
+          onClick={() => setShowCrawlModal(true)}
+          className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-400 dark:hover:bg-blue-950/50"
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          </svg>
+          Import từ URL
+        </button>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6 lg:grid-cols-3">
@@ -176,11 +205,11 @@ export default function EditPostPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">URL ảnh thumbnail</label>
-                <input
-                  {...register('thumbnail')}
-                  placeholder="https://..."
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Ảnh thumbnail</label>
+                <ThumbnailUploader
+                  value={thumbnail}
+                  onChange={(url) => setValue('thumbnail', url)}
+                  error={!!errors.thumbnail}
                 />
                 {errors.thumbnail && <p className="mt-1 text-xs text-red-500">{errors.thumbnail.message}</p>}
               </div>

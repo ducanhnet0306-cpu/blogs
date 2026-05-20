@@ -263,8 +263,9 @@ export default function RichTextEditor({
   minHeight = '400px',
 }: RichTextEditorProps) {
   const editor = useEditor({
+    immediatelyRender: true,
     extensions: [
-      StarterKit,
+      StarterKit.configure({ link: false, underline: false }),
       Underline,
       Link.configure({ openOnClick: false, HTMLAttributes: { class: 'text-blue-600 underline' } }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),

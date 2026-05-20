@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\V1\Admin\AdminCategoryController;
 use App\Http\Controllers\Api\V1\Admin\AdminPostController;
 use App\Http\Controllers\Api\V1\Admin\AdminTagController;
 use App\Http\Controllers\Api\V1\Admin\AdminUserController;
+use App\Http\Controllers\Api\V1\Admin\MediaController;
+use App\Http\Controllers\Api\V1\Admin\CrawlerController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -64,6 +66,17 @@ Route::prefix('v1')->group(function () {
             Route::put('/users/{user}',             [AdminUserController::class, 'update']);
             Route::delete('/users/{user}',          [AdminUserController::class, 'destroy']);
             Route::patch('/users/{user}/status',    [AdminUserController::class, 'updateStatus']);
+
+            // Media upload
+            Route::post('/media/upload',            [MediaController::class, 'upload']);
+
+            // Crawler
+            Route::post('/crawler/fetch',           [CrawlerController::class, 'fetch']);
+            Route::get('/crawler',                  [CrawlerController::class, 'index']);
+            Route::post('/crawler',                 [CrawlerController::class, 'store']);
+            Route::get('/crawler/{crawledPost}',    [CrawlerController::class, 'show']);
+            Route::delete('/crawler/{crawledPost}', [CrawlerController::class, 'destroy']);
+            Route::post('/crawler/{crawledPost}/publish', [CrawlerController::class, 'publish']);
         });
     });
 });

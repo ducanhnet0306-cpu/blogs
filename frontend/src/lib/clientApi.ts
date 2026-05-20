@@ -24,3 +24,24 @@ export async function clientFetch<T>(
 
   return response.json();
 }
+
+// Dùng cho upload file (multipart/form-data) — không set Content-Type để browser tự set boundary
+export async function clientUpload<T>(endpoint: string, formData: FormData): Promise<T> {
+  const token = getToken();
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new Error(error?.message || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+}

@@ -62,7 +62,7 @@ class AdminPostController extends Controller
         // Tránh slug trùng
         $originalSlug = $data['slug'];
         $count = 1;
-        while (Post::where('slug', $data['slug'])->exists()) {
+        while (Post::withTrashed()->where('slug', $data['slug'])->exists()) {
             $data['slug'] = $originalSlug . '-' . $count++;
         }
 
@@ -115,7 +115,7 @@ class AdminPostController extends Controller
             if ($newSlug !== $post->slug) {
                 $originalSlug = $newSlug;
                 $count = 1;
-                while (Post::where('slug', $newSlug)->where('id', '!=', $post->id)->exists()) {
+                while (Post::withTrashed()->where('slug', $newSlug)->where('id', '!=', $post->id)->exists()) {
                     $newSlug = $originalSlug . '-' . $count++;
                 }
                 $data['slug'] = $newSlug;
