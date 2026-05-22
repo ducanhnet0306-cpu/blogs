@@ -23,7 +23,7 @@ export default async function TagPostsPage({ params }: Props) {
       { cache: 'no-store' }
     );
     posts = res.data;
-    total = res.meta.total;
+    total = res.meta?.total ?? 0;
   } catch {
     notFound();
   }

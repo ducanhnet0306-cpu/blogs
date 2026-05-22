@@ -31,7 +31,7 @@ export default function AdminDashboard() {
 
         setRecentPosts(postsRes.data);
 
-        const allPosts = allPostsRes.meta.total;
+        const allPosts = allPostsRes.meta?.total ?? 0;
         const published = postsRes.data.filter(p => p.status === 'published').length;
 
         setStats({

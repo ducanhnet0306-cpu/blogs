@@ -15,9 +15,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const res = await apiFetch<ApiResponse<Post>>(`/posts/${slug}`, { cache: 'no-store' });
     const post = res.data;
     return {
-      title: post.seo?.title || post.title,
-      description: post.seo?.description || post.excerpt || '',
-      keywords: post.seo?.keywords || post.tags?.map((t) => t.name).join(', '),
+      title: post.seo_title || post.title,
+      description: post.seo_description || post.excerpt || '',
+      keywords: post.seo_keywords || post.tags?.map((t) => t.name).join(', '),
       openGraph: {
         title: post.title,
         description: post.excerpt ?? '',

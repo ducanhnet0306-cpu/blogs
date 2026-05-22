@@ -49,8 +49,8 @@ export default function AdminPostsPage() {
       });
       const res = await clientFetch<PaginatedResponse<Post>>(`/admin/posts?${params}`);
       setPosts(res.data);
-      setTotal(res.meta.total);
-      setLastPage(res.meta.last_page);
+      setTotal(res.meta?.total ?? 0);
+      setLastPage(res.meta?.last_page ?? 1);
     } catch {
       toastError('Không thể tải danh sách bài viết');
     } finally {

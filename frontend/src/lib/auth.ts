@@ -32,5 +32,5 @@ export function setStoredUser(user: User): void {
 }
 
 export function isAdmin(user: User | null): boolean {
-  return !!user?.roles?.includes('admin');
+  return !!user?.roles?.some((r) => r.name === 'admin');
 }

@@ -75,9 +75,9 @@ export default function EditPostPage() {
           category_id: post.category ? String(post.category.id) : '',
           status: post.status,
           is_featured: post.is_featured,
-          seo_title: post.seo?.title ?? '',
-          seo_description: post.seo?.description ?? '',
-          seo_keywords: post.seo?.keywords ?? '',
+          seo_title: post.seo_title ?? '',
+          seo_description: post.seo_description ?? '',
+          seo_keywords: post.seo_keywords ?? '',
           tag_ids: post.tags?.map((t) => String(t.id)) ?? [],
         });
       } catch {

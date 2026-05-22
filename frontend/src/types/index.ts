@@ -1,14 +1,24 @@
 export type PostStatus = 'draft' | 'published' | 'archived';
 export type UserStatus = 'active' | 'inactive' | 'banned';
 
+export interface Role {
+  id: number;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface User {
   id: number;
   name: string;
   email: string;
   avatar?: string | null;
+  phone?: string | null;
   status: UserStatus;
-  roles?: string[];
-  permissions?: string[];
+  email_verified_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  roles?: Role[];
 }
 
 export interface Category {
@@ -17,6 +27,9 @@ export interface Category {
   slug: string;
   description?: string | null;
   status: boolean;
+  parent_id?: number | null;
+  created_at: string;
+  updated_at: string;
   parent?: Category | null;
   children?: Category[];
 }
@@ -25,6 +38,8 @@ export interface Tag {
   id: number;
   name: string;
   slug: string;
+  created_at: string;
+  updated_at: string;
   posts_count?: number;
 }
 
@@ -39,16 +54,16 @@ export interface Post {
   is_featured: boolean;
   published_at?: string | null;
   view_count: number;
-  seo?: {
-    title?: string | null;
-    description?: string | null;
-    keywords?: string | null;
-  };
+  user_id: number;
+  category_id?: number | null;
+  seo_title?: string | null;
+  seo_description?: string | null;
+  seo_keywords?: string | null;
+  created_at: string;
+  updated_at: string;
   author?: User;
   category?: Category;
   tags?: Tag[];
-  created_at: string;
-  updated_at: string;
 }
 
 export interface PaginationMeta {
@@ -58,22 +73,19 @@ export interface PaginationMeta {
   total: number;
 }
 
-/** Response cho single resource: { success, data } */
+/** Response cho single resource: { data } */
 export interface ApiResponse<T> {
-  success: boolean;
   message?: string;
   data: T;
 }
 
-/** Response cho paginated list: { success, data[], meta } */
+/** Response cho paginated list: { data[], meta } */
 export interface PaginatedResponse<T> {
-  success: boolean;
   data: T[];
-  meta: PaginationMeta;
+  meta?: PaginationMeta;
 }
 
-/** Response cho non-paginated list: { success, data[] } — dùng cho categories và tags index */
+/** Response cho non-paginated list: { data[] } */
 export interface ApiListResponse<T> {
-  success: boolean;
   data: T[];
 }

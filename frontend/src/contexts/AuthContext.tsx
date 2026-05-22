@@ -30,10 +30,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setTokenState(savedToken);
       setUser(savedUser);
       // Refresh user data from server to get up-to-date roles/permissions
-      clientFetch<{ success: boolean; data: User }>('/auth/me')
+      clientFetch<{ user: User }>('/auth/me')
         .then((res) => {
-          setUser(res.data);
-          setStoredUser(res.data);
+          setUser(res.user);
+          setStoredUser(res.user);
         })
         .catch(() => {
           // Token expired or invalid — clear session
@@ -57,27 +57,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const login = useCallback(async (email: string, password: string) => {
-    const res = await clientFetch<{ success: boolean; data: { token: string; user: User } }>(
+    const res = await clientFetch<{ token: string; user: User }>(
       '/auth/login',
       { method: 'POST', body: JSON.stringify({ email, password }) }
     );
-    setToken(res.data.token);
-    setStoredUser(res.data.user);
-    setTokenState(res.data.token);
-    setUser(res.data.user);
-    syncCookie(res.data.token);
+    setToken(res.token);
+    setStoredUser(res.user);
+    setTokenState(res.token);
+    setUser(res.user);
+    syncCookie(res.token);
   }, []);
 
   const register = useCallback(async (name: string, email: string, password: string) => {
-    const res = await clientFetch<{ success: boolean; data: { token: string; user: User } }>(
+    const res = await clientFetch<{ token: string; user: User }>(
       '/auth/register',
-      { method: 'POST', body: JSON.stringify({ name, email, password, password_confirmation: password }) }
+      { method: 'POST', body: JSON.stringify({ name, email, password }) }
     );
-    setToken(res.data.token);
-    setStoredUser(res.data.user);
-    setTokenState(res.data.token);
-    setUser(res.data.user);
-    syncCookie(res.data.token);
+    setToken(res.token);
+    setStoredUser(res.user);
+    setTokenState(res.token);
+    setUser(res.user);
+    syncCookie(res.token);
   }, []);
 
   const logout = useCallback(async () => {
@@ -100,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         token,
         isLoading,
         isAuthenticated: !!token && !!user,
-        isAdmin: !!user?.roles?.includes('admin'),
+        isAdmin: !!user?.roles?.some((r) => r.name === 'admin'),
         login,
         register,
         logout,

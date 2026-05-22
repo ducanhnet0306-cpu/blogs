@@ -36,8 +36,8 @@ export default async function BlogPage({
       }),
     ]);
     posts = postsRes.data;
-    total = postsRes.meta.total;
-    lastPage = postsRes.meta.last_page;
+    total = postsRes.meta?.total ?? 0;
+    lastPage = postsRes.meta?.last_page ?? 1;
     categories = catsRes.data ?? [];
   } catch {
     // API chưa sẵn sàng

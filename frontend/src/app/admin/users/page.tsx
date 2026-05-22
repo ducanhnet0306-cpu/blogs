@@ -32,7 +32,7 @@ export default function AdminUsersPage() {
     try {
       const res = await clientFetch<PaginatedResponse<User>>('/admin/users?per_page=50');
       setUsers(res.data);
-      setTotal(res.meta.total);
+      setTotal(res.meta?.total ?? 0);
     } catch {
       toastError('Không thể tải danh sách người dùng');
     } finally {
@@ -127,10 +127,10 @@ export default function AdminUsersPage() {
                       <div className="flex flex-wrap gap-1">
                         {user.roles?.map((role) => (
                           <span
-                            key={role}
+                            key={role.id}
                             className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
                           >
-                            {role}
+                            {role.name}
                           </span>
                         )) ?? <span className="text-slate-400">—</span>}
                       </div>
