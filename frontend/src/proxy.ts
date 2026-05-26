@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Admin routes cần token — token được lưu trong localStorage (client-side only)
-  // Middleware chạy trên Edge nên không có localStorage.
+  // Proxy chạy trên Node.js nên không có localStorage.
   // Dùng cookie 'auth_token' để server-side check.
   if (pathname.startsWith('/admin')) {
     const token = request.cookies.get('auth_token')?.value;
